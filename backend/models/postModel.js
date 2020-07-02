@@ -1,10 +1,9 @@
 const mongoose = require('mongoose');
 
 const PostSchema = new mongoose.Schema({
-  title: {
+  description: {
     type: String,
     required: false,
-    minlength: 3,
   },
   image: {
     type: String,
@@ -14,7 +13,7 @@ const PostSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  date: {
+  creationDate: {
     type: Date,
     default: Date.now,
   },
@@ -24,8 +23,14 @@ const PostSchema = new mongoose.Schema({
   },
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Like' }],
   comments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }],
+  commentsCount: {
+    type: Number,
+    default: 0,
+  },
   user: {
     type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
   },
 });
 
