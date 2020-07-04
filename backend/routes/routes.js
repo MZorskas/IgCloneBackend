@@ -25,17 +25,22 @@ router.post('/firstPost', (req, res) => {
 //user routes
 router.post('/user/register', userController.register);
 router.get(
+  '/user/getSingleUserByUsername/:username',
+  userController.getSingleUserByUsername
+);
+router.get(
   '/user/getAllUsers',
   middleware.authenticate,
   userController.getAllUsers
 );
 router.post('/user/login', userController.login);
-router.get('/user/logout', middleware.authenticate, userController.logout);
 router.post(
-  '/user/addDateOfBirth',
+  '/user/loginWithStorage',
   middleware.authenticate,
-  userController.addDateOfBirth
+  userController.loginWithStorage
 );
+router.post('/user/logout', middleware.authenticate, userController.logout);
+
 router.post(
   '/user/addPhoneNumber',
   middleware.authenticate,
@@ -64,15 +69,16 @@ router.post(
   postController.createPost
 );
 router.get(
-  '/post/getAllUserPosts',
-  middleware.authenticate,
-  postController.getAllUserPosts
+  '/post/getAllUserPostsByUsername/:username',
+  postController.getAllUserPostsByUsername
 );
-router.get(
-  '/post/getSingleUserPost/:postId',
-  middleware.authenticate,
-  postController.getSingleUserPost
-);
+// router.get(
+//   '/post/getAllUserPostsByUsername/:username',
+//   middleware.authenticate,
+//   postController.getAllUserPostsByUsername
+// );
+router.get('/post/getSinglePost/:postId', postController.getSinglePost);
+
 router.post(
   '/post/deletePost/:postId',
   middleware.authenticate,
@@ -88,6 +94,23 @@ router.get(
   '/post/getAllUsersPosts/',
   middleware.authenticate,
   postController.getAllUsersPosts
+);
+
+router.get(
+  '/post/getAllPosts/:page/:limit',
+  middleware.authenticate,
+  postController.getAllPosts
+);
+
+router.post(
+  '/post/postNewComment/:postId',
+  middleware.authenticate,
+  postController.postNewComment
+);
+router.post(
+  '/post/deleteComment/:commentId',
+  middleware.authenticate,
+  postController.deleteComment
 );
 
 module.exports = router;

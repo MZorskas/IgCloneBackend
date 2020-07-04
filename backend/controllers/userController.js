@@ -13,9 +13,10 @@ register = async (req, res) => {
   // } else if (!data.phoneNumber) {
   //   user.email = data.email;
   // }
-  data.email
-    ? (user.email = data.email)
-    : (user.phoneNumber = data.phoneNumber);
+  // data.email
+  //   ? (user.email = data.email)
+  //   : (user.phoneNumber = data.phoneNumber);
+  user.email = data.email;
   user.fullName = data.fullName;
   user.username = data.username;
   user.password = data.password;
@@ -146,6 +147,9 @@ changePassword = async (req, res) => {
   res.json('Password changed');
 };
 
+// getSingleUser = async (req, res) => {
+
+// }
 logout = async (req, res) => {
   let user = req.user;
   let token = req.token;
@@ -160,6 +164,20 @@ logout = async (req, res) => {
   });
   res.json('successfully signed out');
 };
+
+// addDateOfBirth = async (req, res) => {
+//   try {
+//     let user = req.user;
+//     let token = req.token;
+//     let data = req.body;
+//     console.log(user);
+//     user.dateOfBirth = data.dateOfBirth;
+//     await user.save();
+//     res.json(user);
+//   } catch (e) {
+//     res.status(400).json(e);
+//   }
+// };
 
 addPhoneNumber = async (req, res) => {
   try {
@@ -211,11 +229,45 @@ followUser = async (req, res) => {
       return res.status(400).json('You cannot follow/unfollow yourself');
     }
 
+    // let reqUser = await UserModel.findOne({ _id: reqUserId });
+
+    // console.log(reqUser);
+    // let targetUser = await UserModel.findOne({ _id: targetUserId });
+    // console.log(targetUser);
+
+    // if (reqUser.following.includes(targetUserId)) {
+    //   reqUser = await reqUser.update({
+    //     $pull: { following: targetUserId },
+    //   });
+
+    //   targetUser = await targetUser.update({
+    //     $pull: { followers: reqUserId },
+    //   });
+    // } else {
+    //   reqUser = await reqUser.update({
+    //     $push: { following: targetUserId },
+    //   });
+    //   targetUser = await targetUser.update({
+    //     $push: { followers: reqUserId },
+    //   });
+    // }
+    // res.status(200).json(targetUser);
+
+    //   (post = await post.updateOne({
+    //     $inc: { likeCount: -1 },
+    //     $pull: { likes: userId },
+    //   }))
+    // : (post = await post.updateOne({
+    //     $inc: { likeCount: 1 },
+    //     $push: { likes: userId },
+    //   }));
+
     if (reqUser.following.includes(targetUserId)) {
       let TargetUser = await UserModel.findOneAndUpdate(
         { _id: targetUserId },
         {
           $pull: { followers: reqUserId },
+          $inc: { likeCount: -1 },
         }
       );
 
@@ -223,6 +275,7 @@ followUser = async (req, res) => {
         { _id: reqUserId },
         {
           $pull: { following: targetUserId },
+          $inc: { likeCount: -1 },
         }
       );
       res.status(200).json(TargetUser);
@@ -233,7 +286,13 @@ followUser = async (req, res) => {
           $push: {
             followers: reqUserId,
           },
+          $inc: { likeCount: 1 },
         }
+        // {
+        //   $push: {
+        //     followers: reqUserId,
+        //   },
+        // }
       );
       let ReqUser = await UserModel.findOneAndUpdate(
         { _id: reqUserId },
@@ -241,10 +300,69 @@ followUser = async (req, res) => {
           $push: {
             following: targetUserId,
           },
+          $inc: { likeCount: 1 },
         }
+        // {
+        //   $push: {
+        //     following: targetUserId,
+        //   },
+        // }
       );
       res.status(200).json(TargetUser);
     }
+
+    // let targetUser = await UserModel.findOne({
+    //   _id: user._id,
+    // });
+    // res.status(200).json(targetUser);
+
+    // let targetUser = await UserModel.findOne({
+    //   _id: req.params.id,
+    // });
+    // const updated = await UserModel.findOneAndUpdate(
+    //   {
+    //     _id: req.params.id,
+    //     // following: { $not: { $elemMatch: { $eq: user._id } } },
+    //   }
+    //   // {
+    //   //   $addToSet: {
+    //   //     following: user._id,
+    //   //   },
+    //   // }
+    // );
+
+    // post.likes.includes(userId)
+    // ? (post = await post.updateOne({
+    //     $inc: { likeCount: -1 },
+    //     $pull: { likes: userId },
+    //   }))
+    // : (post = await post.updateOne({
+    //     $inc: { likeCount: 1 },
+    //     $push: { likes: userId },
+    //   }));
+
+    // add the id of the user you want to follow in following array
+    // const query = {
+    //   _id: user._id,
+    //   following: { $not: { $elemMatch: { $eq: id } } },
+    // };
+    // const update = {
+    //   $addToSet: {
+    //     following: id,
+    //   },
+    // };
+    // const updated = await UserModel.findOneAndUpdate(query, update);
+    // // // add your id to the followers array of the user you want to follow
+    // // const secondQuery = {
+    // //   _id: id,
+    // //   followers: { $not: { $elemMatch: { $eq: user._id } } },
+    // // };
+    // // const secondUpdate = {
+    // //   $addToSet: { followers: user._id },
+    // // };
+    // // const secondUpdated = await User.updateOne(secondQuery, secondUpdate);
+    // if (!updated) {
+    //   return res.status(404).json({ error: 'Unable to follow that user' });
   } catch (err) {
     res.status(400).send({ error: err.message });
   }

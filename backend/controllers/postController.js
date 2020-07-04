@@ -17,6 +17,25 @@ createPost = async (req, res) => {
     // console.log(post.user);
     post = await post.save();
 
+    user = await UserModel.findOneAndUpdate(
+      { _id: user._id },
+      {
+        $push: { posts: post._id },
+        $inc: { postCount: 1 },
+      }
+    );
+    // const updated = await UserModel.findOneAndUpdate(
+    //   {
+    //     _id: req.params.id,
+    //     // following: { $not: { $elemMatch: { $eq: user._id } } },
+    //   }
+    //   // {
+    //   //   $addToSet: {
+    //   //     following: user._id,
+    //   //   },
+    //   // }
+    // );
+
     // let post = await PostModel.create({
     //   user: user._id,
     //   description: data.description,
@@ -37,8 +56,11 @@ createPost = async (req, res) => {
       .populate({ path: 'user', select: 'profilePicture username' })
       .execPopulate();
 
-    console.log({ data: post });
-    await res.json(post);
+    await res.json({
+      success: 'Post created',
+      post,
+      user: req.user.username,
+    });
   } catch (e) {
     res.status(400).json(e);
   }
@@ -82,13 +104,31 @@ getAllUserPostsByUsername = async (req, res) => {
 deletePost = async (req, res) => {
   let postId = req.params.postId;
   try {
-    let post = await PostModel.deleteOne({
-      _id: postId,
-      user: req.user._id,
+    let post = await PostModel.findOne({ _id: postId });
+
+    if (!post) return res.status(401).json('Post not found');
+
+    console.log(post.user);
+    console.log(req.user._id);
+    if (post.user.toString() != req.user._id.toString())
+      return res.status(401).json('You are not authorized to delete this post');
+
+    await UserModel.findOneAndUpdate(
+      { _id: req.user._id },
+      {
+        $pull: { posts: post._id },
+        $inc: { postCount: -1 },
+      }
+    );
+    // console.log(post);
+    // if (post.deletedCount == 0) res.status(400).json('Post doesnt exist');
+    await post.remove();
+
+    res.json({
+      success: 'Post deleted',
+      post: postId,
+      user: req.user.username,
     });
-    console.log(post);
-    if (post.deletedCount == 0) res.status(400).json('Post doesnt exist');
-    res.json('Post deleted');
   } catch (e) {
     res.status(400).json('Post cant be deleted');
   }
@@ -179,8 +219,33 @@ getAllUsersPosts = async (req, res) => {
   try {
     // let user = await UserModel.findById(req.params.id);
     let user = req.user;
-    console.log(user);
-    let allPosts = await PostModel.find({});
+    //Find all posts except req user
+    let allPosts = await PostModel.find({ user: { $ne: req.user._id } })
+      .limit(10)
+      .sort({
+        creationDate: -1,
+      });
+    console.log(allPosts);
+    res.json(allPosts);
+  } catch (e) {
+    res.status(400).json(e);
+  }
+};
+
+getAllPosts = async (req, res) => {
+  try {
+    // let user = await UserModel.findById(req.params.id);
+    let user = req.user;
+    let page = Number(req.params.page);
+    let limit = Number(req.params.limit);
+    let skip = (page - 1) * limit;
+    //Find all posts except req user
+    let allPosts = await PostModel.find({ user: { $ne: req.user._id } })
+      .limit(limit)
+      .skip(skip)
+      .sort({
+        creationDate: -1,
+      });
     console.log(allPosts);
     res.json(allPosts);
   } catch (e) {
@@ -223,4 +288,5 @@ module.exports = {
   likePost,
   postNewComment,
   deleteComment,
+  getAllPosts,
 };

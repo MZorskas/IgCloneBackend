@@ -18,14 +18,7 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: false,
     unique: true,
-    // sparse: true,
-  },
-  phoneNumber: {
-    type: Number,
-    minlength: 9,
-    required: false,
-    unique: true,
-    // sparse: true,
+    sparse: true,
   },
   password: {
     type: String,
@@ -41,6 +34,16 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default:
       'https://pngimage.net/wp-content/uploads/2018/06/no-user-image-png.png',
+  },
+  posts: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Post',
+    },
+  ],
+  postCount: {
+    type: Number,
+    default: 0,
   },
   following: [
     {
