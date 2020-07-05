@@ -27,6 +27,8 @@ const PostSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  saves: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  savesCount: { type: Number, default: 0 },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

@@ -233,11 +233,12 @@ getAllUsersPosts = async (req, res) => {
 };
 
 getAllPosts = async (req, res) => {
+  console.log('x');
   try {
     // let user = await UserModel.findById(req.params.id);
     let user = req.user;
     let page = Number(req.params.page);
-    let limit = Number(req.params.limit);
+    let limit = 9;
     let skip = (page - 1) * limit;
     //Find all posts except req user
     let allPosts = await PostModel.find({ user: { $ne: req.user._id } })
@@ -250,12 +251,13 @@ getAllPosts = async (req, res) => {
     res.json(allPosts);
   } catch (e) {
     res.status(400).json(e);
+    console.log(e);
   }
 };
 
 // "like/unlike a post"
 
-likePost = async (req, res) => {
+toggleLike = async (req, res) => {
   let postId = req.params.postId;
   let userId = req.user._id;
   try {
@@ -279,14 +281,69 @@ likePost = async (req, res) => {
   }
 };
 
+toggleSave = async (req, res) => {
+  let postId = req.params.postId;
+  let userId = req.user._id;
+  console.log('ToggleSave userId:', userId);
+  console.log('ToggleSave postId:', postId);
+  try {
+    let post = await PostModel.findOne({ _id: postId });
+    console.log('ToggleSave post:', post);
+    if (!post) return res.status(401).json('Post not found');
+    let user = await UserModel.findOne({ _id: userId });
+
+    if (post.saves.includes(userId)) {
+      post = await post.updateOne({
+        $inc: { savesCount: -1 },
+        $pull: { saves: userId },
+      });
+
+      user = await user.updateOne({
+        $pull: { savedPosts: postId },
+      });
+
+      res.status(200).json({ success: 'Post removed', postId, userId });
+    } else {
+      post = await post.updateOne({
+        $inc: { savesCount: 1 },
+        $push: { saves: userId },
+      });
+
+      user = await user.updateOne({
+        $push: { savedPosts: postId },
+      });
+
+      res.status(200).json({ success: 'Post saved', postId, userId });
+    }
+  } catch (e) {
+    res.status(400).json(e);
+  }
+};
+
+//Remove post from saved list
+removePost = async (req, res) => {
+  let postId = req.params.postId;
+  let userId = req.user._id;
+  try {
+    let post = await PostModel.findOne({ _id: postId });
+
+    console.log(post);
+
+    res.json(post);
+  } catch (e) {
+    res.status(400).json(e);
+  }
+};
+
 module.exports = {
   createPost,
   getSinglePost,
   getAllUsersPosts,
   getAllUserPostsByUsername,
   deletePost,
-  likePost,
+  toggleLike,
   postNewComment,
   deleteComment,
   getAllPosts,
+  toggleSave,
 };

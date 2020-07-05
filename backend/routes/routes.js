@@ -85,9 +85,9 @@ router.post(
   postController.deletePost
 );
 router.post(
-  '/post/likePost/:postId',
+  '/post/toggleLike/:postId',
   middleware.authenticate,
-  postController.likePost
+  postController.toggleLike
 );
 
 router.get(
@@ -97,7 +97,7 @@ router.get(
 );
 
 router.get(
-  '/post/getAllPosts/:page/:limit',
+  '/post/getAllPosts/:page',
   middleware.authenticate,
   postController.getAllPosts
 );
@@ -111,6 +111,12 @@ router.post(
   '/post/deleteComment/:commentId',
   middleware.authenticate,
   postController.deleteComment
+);
+
+router.post(
+  '/post/toggleSave/:postId',
+  middleware.authenticate,
+  postController.toggleSave
 );
 
 module.exports = router;
