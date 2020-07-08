@@ -8,14 +8,6 @@ register = async (req, res) => {
   let user = new UserModel();
   console.log(data);
   console.log(data.phoneNumber);
-  // if (!data.email) {
-  //   user.phoneNumber = data.phoneNumber;
-  // } else if (!data.phoneNumber) {
-  //   user.email = data.email;
-  // }
-  // data.email
-  //   ? (user.email = data.email)
-  //   : (user.phoneNumber = data.phoneNumber);
   user.email = data.email;
   user.fullName = data.fullName;
   user.username = data.username;
@@ -44,8 +36,6 @@ register = async (req, res) => {
 
 login = async (req, res) => {
   let data = req.body;
-  // console.log(user);
-  console.log(data);
   try {
     let user = await UserModel.findOne({
       $or: [
@@ -68,11 +58,8 @@ login = async (req, res) => {
         },
       ],
     });
-    // console.log(data);
     console.log(user);
-    // console.log(user.phoneNumber);
 
-    // if (!user) return res.status(400).json('No such user');
     const match = await bcrypt.compare(data.password, user.password);
     if (!match || !user)
       return res.status(400).json('Login failed, wrong user credentials');
@@ -106,6 +93,19 @@ loginWithStorage = async (req, res) => {
   }
 };
 
+getSingleUserByUsername = async (req, res) => {
+  let username = req.params.username;
+  console.log(username);
+
+  try {
+    let user = await UserModel.findOne({ username: username });
+    if (!user) return res.status(400).json('This user doesnt exist');
+    res.json(user);
+  } catch (e) {
+    res.status(400).json(e);
+  }
+};
+
 getAllUsers = async (req, res) => {
   console.log(req.user);
 
@@ -117,15 +117,50 @@ getAllUsers = async (req, res) => {
   }
 };
 
-getSingleUserByUsername = async (req, res) => {
-  let username = req.params.username;
-  console.log(username);
+getAllUsersExceptFollowing = async (req, res) => {
+  try {
+    let allUsers = await UserModel.find({
+      followers: { $ne: req.user._id },
+      _id: { $ne: req.user._id },
+    })
+      .select('profilePicture username fullName followers')
+      .exec();
+    res.json(allUsers);
+  } catch (e) {
+    res.status(400).json(e);
+  }
+};
 
+getAllFollowingUsers = async (req, res) => {
+  let username = req.params.username;
   try {
     let user = await UserModel.findOne({ username: username });
     if (!user) return res.status(400).json('This user doesnt exist');
-    res.json(user);
+
+    let followingUsers = await UserModel.find({ followers: user._id })
+      .select('profilePicture username fullName followers')
+      .exec();
+
+    res.json(followingUsers);
   } catch (e) {
+    res.status(400).json(e);
+  }
+};
+
+getAllFollowers = async (req, res) => {
+  let username = req.params.username;
+  console.log(username);
+  try {
+    let user = await UserModel.findOne({ username: username });
+    if (!user) return res.status(400).json('This user doesnt exist');
+
+    let followers = await UserModel.find({ following: user._id })
+      .select('profilePicture username fullName followers')
+      .exec();
+
+    res.json(followers);
+  } catch (e) {
+    console.log(e);
     res.status(400).json(e);
   }
 };
@@ -147,9 +182,6 @@ changePassword = async (req, res) => {
   res.json('Password changed');
 };
 
-// getSingleUser = async (req, res) => {
-
-// }
 logout = async (req, res) => {
   let user = req.user;
   let token = req.token;
@@ -164,20 +196,6 @@ logout = async (req, res) => {
   });
   res.json('successfully signed out');
 };
-
-// addDateOfBirth = async (req, res) => {
-//   try {
-//     let user = req.user;
-//     let token = req.token;
-//     let data = req.body;
-//     console.log(user);
-//     user.dateOfBirth = data.dateOfBirth;
-//     await user.save();
-//     res.json(user);
-//   } catch (e) {
-//     res.status(400).json(e);
-//   }
-// };
 
 addPhoneNumber = async (req, res) => {
   try {
@@ -218,56 +236,23 @@ changeProfilePicture = async (req, res) => {
   res.json(savedUser);
 };
 
-followUser = async (req, res) => {
+toggleFollow = async (req, res) => {
   try {
     let reqUser = req.user;
     let reqUserId = req.user._id;
-    let targetUserId = req.params.id;
+    let targetUserId = req.params.userId;
 
     // check if your (reqUser) id doesn't match the id of the user(targetUser) you want to follow/unfollow
     if (reqUserId == targetUserId) {
       return res.status(400).json('You cannot follow/unfollow yourself');
     }
 
-    // let reqUser = await UserModel.findOne({ _id: reqUserId });
-
-    // console.log(reqUser);
-    // let targetUser = await UserModel.findOne({ _id: targetUserId });
-    // console.log(targetUser);
-
-    // if (reqUser.following.includes(targetUserId)) {
-    //   reqUser = await reqUser.update({
-    //     $pull: { following: targetUserId },
-    //   });
-
-    //   targetUser = await targetUser.update({
-    //     $pull: { followers: reqUserId },
-    //   });
-    // } else {
-    //   reqUser = await reqUser.update({
-    //     $push: { following: targetUserId },
-    //   });
-    //   targetUser = await targetUser.update({
-    //     $push: { followers: reqUserId },
-    //   });
-    // }
-    // res.status(200).json(targetUser);
-
-    //   (post = await post.updateOne({
-    //     $inc: { likeCount: -1 },
-    //     $pull: { likes: userId },
-    //   }))
-    // : (post = await post.updateOne({
-    //     $inc: { likeCount: 1 },
-    //     $push: { likes: userId },
-    //   }));
-
     if (reqUser.following.includes(targetUserId)) {
       let TargetUser = await UserModel.findOneAndUpdate(
         { _id: targetUserId },
         {
           $pull: { followers: reqUserId },
-          $inc: { likeCount: -1 },
+          $inc: { followersCount: -1 },
         }
       );
 
@@ -275,10 +260,12 @@ followUser = async (req, res) => {
         { _id: reqUserId },
         {
           $pull: { following: targetUserId },
-          $inc: { likeCount: -1 },
+          $inc: { followingCount: -1 },
         }
       );
-      res.status(200).json(TargetUser);
+      res
+        .status(200)
+        .json({ success: 'User unfollowed', targetUserId, reqUserId });
     } else {
       let TargetUser = await UserModel.findOneAndUpdate(
         { _id: targetUserId },
@@ -286,13 +273,8 @@ followUser = async (req, res) => {
           $push: {
             followers: reqUserId,
           },
-          $inc: { likeCount: 1 },
+          $inc: { followersCount: 1 },
         }
-        // {
-        //   $push: {
-        //     followers: reqUserId,
-        //   },
-        // }
       );
       let ReqUser = await UserModel.findOneAndUpdate(
         { _id: reqUserId },
@@ -300,69 +282,13 @@ followUser = async (req, res) => {
           $push: {
             following: targetUserId,
           },
-          $inc: { likeCount: 1 },
+          $inc: { followingCount: 1 },
         }
-        // {
-        //   $push: {
-        //     following: targetUserId,
-        //   },
-        // }
       );
-      res.status(200).json(TargetUser);
+      res
+        .status(200)
+        .json({ success: 'User followed', targetUserId, reqUserId });
     }
-
-    // let targetUser = await UserModel.findOne({
-    //   _id: user._id,
-    // });
-    // res.status(200).json(targetUser);
-
-    // let targetUser = await UserModel.findOne({
-    //   _id: req.params.id,
-    // });
-    // const updated = await UserModel.findOneAndUpdate(
-    //   {
-    //     _id: req.params.id,
-    //     // following: { $not: { $elemMatch: { $eq: user._id } } },
-    //   }
-    //   // {
-    //   //   $addToSet: {
-    //   //     following: user._id,
-    //   //   },
-    //   // }
-    // );
-
-    // post.likes.includes(userId)
-    // ? (post = await post.updateOne({
-    //     $inc: { likeCount: -1 },
-    //     $pull: { likes: userId },
-    //   }))
-    // : (post = await post.updateOne({
-    //     $inc: { likeCount: 1 },
-    //     $push: { likes: userId },
-    //   }));
-
-    // add the id of the user you want to follow in following array
-    // const query = {
-    //   _id: user._id,
-    //   following: { $not: { $elemMatch: { $eq: id } } },
-    // };
-    // const update = {
-    //   $addToSet: {
-    //     following: id,
-    //   },
-    // };
-    // const updated = await UserModel.findOneAndUpdate(query, update);
-    // // // add your id to the followers array of the user you want to follow
-    // // const secondQuery = {
-    // //   _id: id,
-    // //   followers: { $not: { $elemMatch: { $eq: user._id } } },
-    // // };
-    // // const secondUpdate = {
-    // //   $addToSet: { followers: user._id },
-    // // };
-    // // const secondUpdated = await User.updateOne(secondQuery, secondUpdate);
-    // if (!updated) {
-    //   return res.status(404).json({ error: 'Unable to follow that user' });
   } catch (err) {
     res.status(400).send({ error: err.message });
   }
@@ -377,7 +303,10 @@ module.exports = {
   addPhoneNumber,
   addEmail,
   changeProfilePicture,
-  followUser,
+  toggleFollow,
   getSingleUserByUsername,
   loginWithStorage,
+  getAllFollowingUsers,
+  getAllFollowers,
+  getAllUsersExceptFollowing,
 };

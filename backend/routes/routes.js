@@ -33,6 +33,25 @@ router.get(
   middleware.authenticate,
   userController.getAllUsers
 );
+
+router.get(
+  '/user/getAllFollowingUsers/:username',
+  middleware.authenticate,
+  userController.getAllFollowingUsers
+);
+
+router.get(
+  '/user/getAllFollowers/:username',
+  middleware.authenticate,
+  userController.getAllFollowers
+);
+
+router.get(
+  '/user/getAllUsersExceptFollowing/',
+  middleware.authenticate,
+  userController.getAllUsersExceptFollowing
+);
+
 router.post('/user/login', userController.login);
 router.post(
   '/user/loginWithStorage',
@@ -56,9 +75,9 @@ router.post(
 );
 
 router.post(
-  '/user/followUser/:id',
+  '/user/toggleFollow/:userId',
   middleware.authenticate,
-  userController.followUser
+  userController.toggleFollow
 );
 
 //post routes
@@ -72,11 +91,25 @@ router.get(
   '/post/getAllUserPostsByUsername/:username',
   postController.getAllUserPostsByUsername
 );
-// router.get(
-//   '/post/getAllUserPostsByUsername/:username',
-//   middleware.authenticate,
-//   postController.getAllUserPostsByUsername
-// );
+
+router.get(
+  '/post/getSavedPosts/:page',
+  middleware.authenticate,
+  postController.getSavedPosts
+);
+
+router.get(
+  '/post/getAllFollowingUsersPosts/:page',
+  middleware.authenticate,
+  postController.getAllFollowingUsersPosts
+);
+
+router.get(
+  '/post/getAllExplorePosts/:page',
+  middleware.authenticate,
+  postController.getAllExplorePosts
+);
+
 router.get('/post/getSinglePost/:postId', postController.getSinglePost);
 
 router.post(
