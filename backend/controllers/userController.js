@@ -8,6 +8,14 @@ register = async (req, res) => {
   let user = new UserModel();
   console.log(data);
   console.log(data.phoneNumber);
+  // if (!data.email) {
+  //   user.phoneNumber = data.phoneNumber;
+  // } else if (!data.phoneNumber) {
+  //   user.email = data.email;
+  // }
+  // data.email
+  //   ? (user.email = data.email)
+  //   : (user.phoneNumber = data.phoneNumber);
   user.email = data.email;
   user.fullName = data.fullName;
   user.username = data.username;
@@ -93,6 +101,45 @@ loginWithStorage = async (req, res) => {
   }
 };
 
+changePassword = async (req, res) => {
+  let data = req.body;
+  console.log(data);
+  try {
+    let user = req.user;
+    const match = await bcrypt.compare(data.oldPassword, user.password);
+    if (!match) return res.status(400).json('Wrong old password');
+    if (data.newPassword != data.repeatNewPassword)
+      return res.status(400).json('New passwords do not match');
+    user.password = data.newPassword;
+    await user.save();
+    res.json({ success: 'Password changed!', password: user.password });
+  } catch (e) {
+    res.status(400).json(e);
+  }
+};
+
+editInfo = async (req, res) => {
+  let data = req.body;
+  console.log(data);
+  try {
+    let user = req.user;
+    if (data.fullName) {
+      user.fullName = data.fullName;
+    }
+    if (data.bio) {
+      user.bio = data.bio;
+    }
+    await user.save();
+    res.json({
+      success: 'Information edited!',
+      fullName: user.fullName,
+      bio: user.bio,
+    });
+  } catch (e) {
+    res.status(400).json(e);
+  }
+};
+
 getSingleUserByUsername = async (req, res) => {
   let username = req.params.username;
   console.log(username);
@@ -163,23 +210,6 @@ getAllFollowers = async (req, res) => {
     console.log(e);
     res.status(400).json(e);
   }
-};
-
-changePassword = async (req, res) => {
-  let data = req.body;
-  let user = await UserModel.findOne({
-    email: data.email,
-  });
-  if (user === null) return res.status(400).json('Invalid email, please relog');
-  const match = await bcrypt.compare(data.oldPassword, user.password);
-  if (!match) return res.status(400).json('Wrong password');
-  if (data.newPassword != data.repeatNewPassword)
-    return res.status(400).json('Passwords do not  match');
-  console.log(user);
-  user.password = data.newPassword;
-  await user.save();
-  console.log(user);
-  res.json('Password changed');
 };
 
 logout = async (req, res) => {
@@ -309,4 +339,6 @@ module.exports = {
   getAllFollowingUsers,
   getAllFollowers,
   getAllUsersExceptFollowing,
+  changePassword,
+  editInfo,
 };

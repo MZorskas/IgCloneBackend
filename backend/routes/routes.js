@@ -24,10 +24,24 @@ router.post('/firstPost', (req, res) => {
 
 //user routes
 router.post('/user/register', userController.register);
-router.get(
-  '/user/getSingleUserByUsername/:username',
-  userController.getSingleUserByUsername
+
+router.post(
+  '/user/changePassword/',
+  middleware.authenticate,
+  userController.changePassword
 );
+
+router.post(
+  '/user/editInfo/',
+  middleware.authenticate,
+  userController.editInfo
+);
+
+changePassword,
+  router.get(
+    '/user/getSingleUserByUsername/:username',
+    userController.getSingleUserByUsername
+  );
 router.get(
   '/user/getAllUsers',
   middleware.authenticate,
