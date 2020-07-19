@@ -67,6 +67,10 @@ const UserSchema = new mongoose.Schema({
     type: String,
   },
   savedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
+  savedPostsCount: {
+    type: Number,
+    default: 0,
+  },
   tokens: [
     {
       token: {
@@ -78,6 +82,8 @@ const UserSchema = new mongoose.Schema({
     },
   ],
 });
+
+UserSchema.index({ username: 'text', fullName: 'text' });
 
 UserSchema.pre('save', function (next) {
   let user = this;

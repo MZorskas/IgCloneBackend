@@ -23,6 +23,8 @@ router.post('/firstPost', (req, res) => {
 });
 
 //user routes
+router.post('/user/searchUser', userController.searchUser);
+
 router.post('/user/register', userController.register);
 
 router.post(
@@ -37,11 +39,18 @@ router.post(
   userController.editInfo
 );
 
+router.get(
+  '/user/getActiveUser/',
+  middleware.authenticate,
+  userController.getActiveUser
+);
+
 changePassword,
   router.get(
     '/user/getSingleUserByUsername/:username',
     userController.getSingleUserByUsername
   );
+
 router.get(
   '/user/getAllUsers',
   middleware.authenticate,
@@ -102,7 +111,7 @@ router.post(
   postController.createPost
 );
 router.get(
-  '/post/getAllUserPostsByUsername/:username',
+  '/post/getAllUserPostsByUsername/:username/:page',
   postController.getAllUserPostsByUsername
 );
 

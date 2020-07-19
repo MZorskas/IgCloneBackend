@@ -13,7 +13,8 @@ createPost = async (req, res) => {
     post.description = data.description;
     post.user = user._id;
     post.image = `http://localhost:3001/${req.file.path}`;
-
+    // console.log(post.title);
+    // console.log(post.user);
     post = await post.save();
 
     user = await UserModel.findOneAndUpdate(
@@ -23,7 +24,6 @@ createPost = async (req, res) => {
         $inc: { postCount: 1 },
       }
     );
-
     post = await post
       .populate({ path: 'user', select: 'profilePicture username' })
       .execPopulate();
@@ -57,7 +57,8 @@ deletePost = async (req, res) => {
         $inc: { postCount: -1 },
       }
     );
-
+    // console.log(post);
+    // if (post.deletedCount == 0) res.status(400).json('Post doesnt exist');
     await post.remove();
 
     res.json({
@@ -72,18 +73,25 @@ deletePost = async (req, res) => {
 
 getAllUserPostsByUsername = async (req, res) => {
   let username = req.params.username;
-  console.log(username);
   try {
+    let page = Number(req.params.page);
+    let limit = 18;
+    let skip = (page - 1) * limit;
     let user = await UserModel.findOne({ username: username });
     let allPosts = await PostModel.find({
       user: user._id,
     })
+      .limit(limit)
+      .skip(skip)
+      .sort({
+        creationDate: -1,
+      })
       .populate({
         path: 'comments',
         select: 'text',
         populate: {
-          path: 'user',
-          select: 'username profilePicture',
+          path: 'user post',
+          select: 'username profilePicture user',
         },
       })
       .populate({
@@ -104,7 +112,7 @@ getAllFollowingUsersPosts = async (req, res) => {
   try {
     // let user = await UserModel.findById(req.params.id);
     let page = Number(req.params.page);
-    let limit = 9;
+    let limit = 10;
     let skip = (page - 1) * limit;
     //Find all posts except req user
     let allPosts = await PostModel.find()
@@ -119,8 +127,8 @@ getAllFollowingUsersPosts = async (req, res) => {
         path: 'comments',
         select: 'text',
         populate: {
-          path: 'user',
-          select: 'username profilePicture',
+          path: 'user post',
+          select: 'username profilePicture user',
         },
       })
       .populate({
@@ -142,7 +150,7 @@ getAllFollowingUsersPosts = async (req, res) => {
 getAllExplorePosts = async (req, res) => {
   try {
     let page = Number(req.params.page);
-    let limit = 9;
+    let limit = 18;
     let skip = (page - 1) * limit;
     //Find all posts except req user
     let explorePosts = await PostModel.find({
@@ -157,8 +165,8 @@ getAllExplorePosts = async (req, res) => {
         path: 'comments',
         select: 'text',
         populate: {
-          path: 'user',
-          select: 'username profilePicture',
+          path: 'user post',
+          select: 'username profilePicture user',
         },
       })
       .populate({
@@ -184,15 +192,14 @@ getSinglePost = async (req, res) => {
         path: 'comments',
         select: 'text',
         populate: {
-          path: 'user',
-          select: 'username profilePicture',
+          path: 'user post',
+          select: 'username profilePicture user',
         },
       })
       .populate({
         path: 'user',
         select: 'profilePicture followers following username',
       })
-
       .lean()
       .exec();
 
@@ -220,13 +227,17 @@ postNewComment = async (req, res) => {
       post: postId,
       text: req.body.text,
     });
+    // console.log('COMMENT', comment);
     post.comments.push(comment._id);
     post.commentsCount = post.commentsCount + 1;
     await post.save();
 
     comment = await comment
       .populate({ path: 'user', select: 'profilePicture username' })
+      .populate({ path: 'post', select: 'user' })
       .execPopulate();
+    // console.log(comment.user.profilePicture);
+    // console.log(comment.user.username);
     console.log(comment);
     res.json(comment);
   } catch (e) {
@@ -245,6 +256,8 @@ deleteComment = async (req, res) => {
     console.log(comment);
     if (comment.deletedCount === 0)
       res.status(400).json('Comment doesnt exist');
+    // console.log(comment.user.profilePicture);
+    // console.log(comment.user.username);
     res.json({ success: 'Comment deleted', commentId });
   } catch (e) {
     res.status(400).json('Comment cant be deleted');
@@ -253,6 +266,7 @@ deleteComment = async (req, res) => {
 
 getAllUsersPosts = async (req, res) => {
   try {
+    // let user = await UserModel.findById(req.params.id);
     let user = req.user;
     //Find all posts except req user
     let allPosts = await PostModel.find({ user: { $ne: req.user._id } })
@@ -296,7 +310,7 @@ getSavedPosts = async (req, res) => {
   const userId = req.user._id;
   try {
     let page = Number(req.params.page);
-    let limit = 9;
+    let limit = 18;
     let skip = (page - 1) * limit;
     //Find all posts except req user
     let savedPosts = await PostModel.find({ saves: userId })
@@ -309,13 +323,13 @@ getSavedPosts = async (req, res) => {
         path: 'comments',
         select: 'text',
         populate: {
-          path: 'user',
-          select: 'username profilePicture',
+          path: 'user post',
+          select: 'username profilePicture user',
         },
       })
       .populate({
         path: 'user',
-        select: 'username profilePicture',
+        select: 'profilePicture followers following username',
       })
       .lean()
       .exec();

@@ -153,6 +153,16 @@ getSingleUserByUsername = async (req, res) => {
   }
 };
 
+getActiveUser = async (req, res) => {
+  try {
+    let user = req.user;
+    if (!user) return res.status(400).json('This user doesnt exist');
+    res.json(user);
+  } catch (e) {
+    res.status(400).json(e);
+  }
+};
+
 getAllUsers = async (req, res) => {
   console.log(req.user);
 
@@ -170,7 +180,7 @@ getAllUsersExceptFollowing = async (req, res) => {
       followers: { $ne: req.user._id },
       _id: { $ne: req.user._id },
     })
-      .select('profilePicture username fullName followers')
+      .select('profilePicture username fullName followers following')
       .exec();
     res.json(allUsers);
   } catch (e) {
@@ -185,7 +195,7 @@ getAllFollowingUsers = async (req, res) => {
     if (!user) return res.status(400).json('This user doesnt exist');
 
     let followingUsers = await UserModel.find({ followers: user._id })
-      .select('profilePicture username fullName followers')
+      .select('profilePicture username fullName followers following')
       .exec();
 
     res.json(followingUsers);
@@ -202,7 +212,7 @@ getAllFollowers = async (req, res) => {
     if (!user) return res.status(400).json('This user doesnt exist');
 
     let followers = await UserModel.find({ following: user._id })
-      .select('profilePicture username fullName followers')
+      .select('profilePicture username fullName followers following')
       .exec();
 
     res.json(followers);
@@ -324,9 +334,27 @@ toggleFollow = async (req, res) => {
   }
 };
 
+searchUser = async (req, res) => {
+  let input = req.body.input;
+  try {
+    let results = await UserModel.find({
+      $or: [{ username: { $regex: input } }, { fullName: { $regex: input } }],
+    })
+      .select('profilePicture username fullName')
+      .limit(5)
+      .exec();
+    if (!results) return res.json('No results found.');
+    console.log(results);
+    res.json(results);
+  } catch (e) {
+    res.status(400).json(e);
+  }
+};
+
 module.exports = {
   register,
   getAllUsers,
+  getActiveUser,
   login,
   changePassword,
   logout,
@@ -341,4 +369,5 @@ module.exports = {
   getAllUsersExceptFollowing,
   changePassword,
   editInfo,
+  searchUser,
 };
