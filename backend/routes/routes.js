@@ -14,15 +14,17 @@ const upload = multer({
 
 const userController = require('../controllers/userController');
 const postController = require('../controllers/postController');
+const commentController = require('../controllers/commentController');
 const middleware = require('../middleware/middleware');
 
-router.post('/firstPost', (req, res) => {
-  let data = req.body;
-  console.log(data);
-  res.json('success');
-});
+// router.post('/firstPost', (req, res) => {
+//   let data = req.body;
+//   console.log(data);
+//   res.json('success');
+// });
 
-//user routes
+//USER ROUTES
+
 router.post('/user/searchUser', userController.searchUser);
 
 router.post('/user/register', userController.register);
@@ -103,7 +105,8 @@ router.post(
   userController.toggleFollow
 );
 
-//post routes
+//POST ROUTES
+
 router.post(
   '/post/createPost',
   middleware.authenticate,
@@ -141,9 +144,9 @@ router.post(
   postController.deletePost
 );
 router.post(
-  '/post/toggleLike/:postId',
+  '/post/toggleLikePost/:postId',
   middleware.authenticate,
-  postController.toggleLike
+  postController.toggleLikePost
 );
 
 router.get(
@@ -159,20 +162,29 @@ router.get(
 );
 
 router.post(
-  '/post/postNewComment/:postId',
+  '/post/toggleSavePost/:postId',
   middleware.authenticate,
-  postController.postNewComment
+  postController.toggleSavePost
 );
+
+//COMMENT ROUTES
+
 router.post(
-  '/post/deleteComment/:commentId',
+  '/comment/postNewComment/:postId',
   middleware.authenticate,
-  postController.deleteComment
+  commentController.postNewComment
 );
 
 router.post(
-  '/post/toggleSave/:postId',
+  '/comment/deleteComment/:commentId',
   middleware.authenticate,
-  postController.toggleSave
+  commentController.deleteComment
+);
+
+router.post(
+  '/comment/toggleLikeComment/:commentId',
+  middleware.authenticate,
+  commentController.toggleLikeComment
 );
 
 module.exports = router;

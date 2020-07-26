@@ -10,6 +10,11 @@ const CommentSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  likesCount: {
+    type: Number,
+    default: 0,
+  },
+  likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Like' }],
   creationDate: {
     type: Date,
     default: Date.now,

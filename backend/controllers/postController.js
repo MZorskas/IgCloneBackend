@@ -1,6 +1,5 @@
 const PostModel = require('../models/postModel');
 const UserModel = require('../models/userModel');
-const CommentModel = require('../models/commentModel');
 
 createPost = async (req, res) => {
   let data = req.body;
@@ -25,7 +24,10 @@ createPost = async (req, res) => {
       }
     );
     post = await post
-      .populate({ path: 'user', select: 'profilePicture username' })
+      .populate({
+        path: 'user',
+        select: 'profilePicture followers following username',
+      })
       .execPopulate();
 
     await res.json({
@@ -88,7 +90,7 @@ getAllUserPostsByUsername = async (req, res) => {
       })
       .populate({
         path: 'comments',
-        select: 'text',
+        select: 'text creationDate likes likesCount',
         populate: {
           path: 'user post',
           select: 'username profilePicture user',
@@ -125,7 +127,7 @@ getAllFollowingUsersPosts = async (req, res) => {
       })
       .populate({
         path: 'comments',
-        select: 'text',
+        select: 'text creationDate likes likesCount',
         populate: {
           path: 'user post',
           select: 'username profilePicture user',
@@ -150,9 +152,13 @@ getAllFollowingUsersPosts = async (req, res) => {
 getAllExplorePosts = async (req, res) => {
   try {
     let page = Number(req.params.page);
-    let limit = 18;
+    let limit = 9;
     let skip = (page - 1) * limit;
-    //Find all posts except req user
+    // Find all posts except req user count
+    let count = await PostModel.find({
+      user: { $nin: [...req.user.following, req.user._id] },
+    }).count();
+
     let explorePosts = await PostModel.find({
       user: { $nin: [...req.user.following, req.user._id] },
     })
@@ -163,7 +169,7 @@ getAllExplorePosts = async (req, res) => {
       })
       .populate({
         path: 'comments',
-        select: 'text',
+        select: 'text creationDate likes likesCount',
         populate: {
           path: 'user post',
           select: 'username profilePicture user',
@@ -173,10 +179,11 @@ getAllExplorePosts = async (req, res) => {
         path: 'user',
         select: 'profilePicture followers following username',
       })
+
       .lean()
       .exec();
 
-    res.json(explorePosts);
+    res.json({ data: explorePosts, count });
   } catch (e) {
     res.status(400).json(e);
     console.log(e);
@@ -190,7 +197,7 @@ getSinglePost = async (req, res) => {
     let post = await PostModel.findById(postId)
       .populate({
         path: 'comments',
-        select: 'text',
+        select: 'text creationDate likes likesCount',
         populate: {
           path: 'user post',
           select: 'username profilePicture user',
@@ -208,59 +215,6 @@ getSinglePost = async (req, res) => {
     console.log(post);
   } catch (e) {
     res.status(400).json(e);
-  }
-};
-
-postNewComment = async (req, res) => {
-  let postId = req.params.postId;
-  let userId = req.user._id;
-
-  try {
-    console.log(postId);
-    let post = await PostModel.findOne({
-      _id: postId,
-    });
-    if (!post) return res.json('Post not found');
-
-    let comment = await CommentModel.create({
-      user: userId,
-      post: postId,
-      text: req.body.text,
-    });
-    // console.log('COMMENT', comment);
-    post.comments.push(comment._id);
-    post.commentsCount = post.commentsCount + 1;
-    await post.save();
-
-    comment = await comment
-      .populate({ path: 'user', select: 'profilePicture username' })
-      .populate({ path: 'post', select: 'user' })
-      .execPopulate();
-    // console.log(comment.user.profilePicture);
-    // console.log(comment.user.username);
-    console.log(comment);
-    res.json(comment);
-  } catch (e) {
-    res.status(400).json(e);
-  }
-};
-
-deleteComment = async (req, res) => {
-  let commentId = req.params.commentId;
-  console.log('delete Comment user ', req.user._id);
-  try {
-    let comment = await CommentModel.deleteOne({
-      _id: commentId,
-      user: req.user._id,
-    });
-    console.log(comment);
-    if (comment.deletedCount === 0)
-      res.status(400).json('Comment doesnt exist');
-    // console.log(comment.user.profilePicture);
-    // console.log(comment.user.username);
-    res.json({ success: 'Comment deleted', commentId });
-  } catch (e) {
-    res.status(400).json('Comment cant be deleted');
   }
 };
 
@@ -321,7 +275,7 @@ getSavedPosts = async (req, res) => {
       })
       .populate({
         path: 'comments',
-        select: 'text',
+        select: 'text creationDate likes likesCount',
         populate: {
           path: 'user post',
           select: 'username profilePicture user',
@@ -343,7 +297,7 @@ getSavedPosts = async (req, res) => {
 
 // "like/unlike a post"
 
-toggleLike = async (req, res) => {
+toggleLikePost = async (req, res) => {
   let postId = req.params.postId;
   let userId = req.user._id;
   try {
@@ -367,7 +321,7 @@ toggleLike = async (req, res) => {
   }
 };
 
-toggleSave = async (req, res) => {
+toggleSavePost = async (req, res) => {
   let postId = req.params.postId;
   let userId = req.user._id;
   console.log('ToggleSave userId:', userId);
@@ -427,11 +381,9 @@ module.exports = {
   getAllUsersPosts,
   getAllUserPostsByUsername,
   deletePost,
-  toggleLike,
-  postNewComment,
-  deleteComment,
+  toggleLikePost,
   getAllPosts,
-  toggleSave,
+  toggleSavePost,
   getSavedPosts,
   getAllFollowingUsersPosts,
   getAllExplorePosts,
